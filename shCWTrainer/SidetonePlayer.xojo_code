@@ -11,12 +11,6 @@ Protected Class SidetonePlayer
 	#tag ExternalMethod, Flags = &h21
 		Private Declare Function AudioOpen Lib kAudioShim Alias "shcw_audio_open" (frequency As Single, volume As Single) As Integer
 	#tag EndExternalMethod
-	#tag ExternalMethod, Flags = &h21
-		Private Declare Function NativePlaybackActive Lib kAudioShim Alias "shcw_playback_active" () As Integer
-	#tag EndExternalMethod
-	#tag ExternalMethod, Flags = &h21
-		Private Declare Sub NativePlaybackStart Lib kAudioShim Alias "shcw_playback_start" (text As CString, wpm As Integer)
-	#tag EndExternalMethod
 
 	#tag Method, Flags = &h0
 		Sub Configure(newPitch As Integer, newVolume As Integer)
@@ -54,6 +48,14 @@ Protected Class SidetonePlayer
 		  #EndIf
 		End Function
 	#tag EndMethod
+
+	#tag ExternalMethod, Flags = &h21
+		Private Declare Function NativePlaybackActive Lib kAudioShim Alias "shcw_playback_active" () As Integer
+	#tag EndExternalMethod
+
+	#tag ExternalMethod, Flags = &h21
+		Private Declare Sub NativePlaybackStart Lib kAudioShim Alias "shcw_playback_start" (text As CString, wpm As Integer)
+	#tag EndExternalMethod
 
 	#tag Method, Flags = &h0
 		Sub PlayText(text As String, wpm As Integer)
@@ -101,7 +103,7 @@ Protected Class SidetonePlayer
 	#tag EndProperty
 
 
-	#tag Constant, Name = kAudioShim, Type = String, Dynamic = False, Default = "/Users/michaelmorgan/Documents/GitHub/shCWTrainer/shCWTrainer/native/libshcwmidi.dylib", Scope = Private
+	#tag Constant, Name = kAudioShim, Type = String, Dynamic = False, Default = \"Users/michaelmorgan/Documents/GitHub/shCWTrainer/shCWTrainer/native/libshcwmidi.dylib", Scope = Private
 	#tag EndConstant
 
 

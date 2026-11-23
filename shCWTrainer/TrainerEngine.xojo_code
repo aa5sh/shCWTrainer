@@ -1,6 +1,24 @@
 #tag Class
 Protected Class TrainerEngine
 	#tag Method, Flags = &h0
+		Sub BeginAttempt(target As String)
+		  CurrentTarget = target.Uppercase
+		  ReceivedText = ""
+		  CurrentPattern = ""
+		  LastResult = "Listen, then send it back."
+		  mKeyIsDown = False
+		  mLastKeyUp = 0
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Sub CheckIdle(atMilliseconds As Double)
+		  If mKeyIsDown Or CurrentPattern = "" Or mLastKeyUp = 0 Then Return
+		  If atMilliseconds - mLastKeyUp >= CharacterGapMilliseconds Then FinishCharacter
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
 		Sub Constructor()
 		  mCodec = New MorseCodec
 		  LoadCallsigns
@@ -9,13 +27,28 @@ Protected Class TrainerEngine
 	#tag EndMethod
 
 	#tag Method, Flags = &h0
-		Sub BeginAttempt(target As String)
-		  CurrentTarget = target.Uppercase
-		  ReceivedText = ""
+		Sub EvaluateIfComplete()
+		  Dim compactReceived As String = ReceivedText.ReplaceAll(" ", "")
+		  Dim compactTarget As String = CurrentTarget.ReplaceAll(" ", "")
+		  If compactReceived.Length < compactTarget.Length Then Return
+		  Attempts = Attempts + 1
+		  If compactReceived = compactTarget Then
+		    Correct = Correct + 1
+		    Streak = Streak + 1
+		    LastResult = "Correct — good copy!"
+		  Else
+		    Streak = 0
+		    LastResult = "Not quite. Target: " + CurrentTarget + "   You sent: " + ReceivedText
+		  End If
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Sub FinishCharacter()
+		  If CurrentPattern = "" Then Return
+		  ReceivedText = ReceivedText + mCodec.Decode(CurrentPattern)
 		  CurrentPattern = ""
-		  LastResult = "Listen, then send it back."
-		  mKeyIsDown = False
-		  mLastKeyUp = 0
+		  EvaluateIfComplete
 		End Sub
 	#tag EndMethod
 
@@ -52,67 +85,13 @@ Protected Class TrainerEngine
 	#tag EndMethod
 
 	#tag Method, Flags = &h0
-		Sub CheckIdle(atMilliseconds As Double)
-		  If mKeyIsDown Or CurrentPattern = "" Or mLastKeyUp = 0 Then Return
-		  If atMilliseconds - mLastKeyUp >= CharacterGapMilliseconds Then FinishCharacter
-		End Sub
-	#tag EndMethod
-
-	#tag Method, Flags = &h0
-		Sub FinishCharacter()
-		  If CurrentPattern = "" Then Return
-		  ReceivedText = ReceivedText + mCodec.Decode(CurrentPattern)
-		  CurrentPattern = ""
-		  EvaluateIfComplete
-		End Sub
-	#tag EndMethod
-
-	#tag Method, Flags = &h0
-		Sub EvaluateIfComplete()
-		  Dim compactReceived As String = ReceivedText.ReplaceAll(" ", "")
-		  Dim compactTarget As String = CurrentTarget.ReplaceAll(" ", "")
-		  If compactReceived.Length < compactTarget.Length Then Return
-		  Attempts = Attempts + 1
-		  If compactReceived = compactTarget Then
-		    Correct = Correct + 1
-		    Streak = Streak + 1
-		    LastResult = "Correct — good copy!"
-		  Else
-		    Streak = 0
-		    LastResult = "Not quite. Target: " + CurrentTarget + "   You sent: " + ReceivedText
-		  End If
-		End Sub
-	#tag EndMethod
-
-	#tag Method, Flags = &h0
-		Function NextPrompt(mode As String, lesson As Integer) As String
-		  Dim pool As String = LessonCharacters(lesson)
-		  If mode = "Callsigns" Then
-		    If mCallsigns.Count > 0 Then
-		      Dim selected As String
-		      For attempt As Integer = 0 To 5
-		        selected = mCallsigns(System.Random.InRange(0, mCallsigns.LastIndex))
-		        If selected <> mLastCallsign Then Exit
-		      Next
-		      mLastCallsign = selected
-		      Return selected
-		    End If
-		    Dim fallback() As String = Array("K5ZD", "W9KKN", "AA5SH", "N6MTS", "VE3NE", "DL1A", "JA1ABC")
-		    Return fallback(System.Random.InRange(0, fallback.LastIndex))
-		End If
-		If mode = "Words" Then
-		    Dim words() As String = Array("THE", "AND", "RADIO", "MORSE", "CODE", "SIGNAL", "ANTENNA", "POWER", "NAME", "QTH")
-		    Dim candidates() As String
-		    For Each word As String In words
-		      Dim allowed As Boolean = True
-		      For Each character As String In word.Characters
-		        If pool.IndexOf(character) < 0 Then allowed = False
-		      Next
-		      If allowed Then candidates.Add(word)
-		    Next
-		    If candidates.Count > 0 Then Return candidates(System.Random.InRange(0, candidates.LastIndex))
-		End If
-		Return pool.Middle(System.Random.InRange(0, pool.Length - 1), 1)
+		Function LessonCharacters(lesson As Integer) As String
+		  Dim order As String = "ETANIMSOUDRCQYHGPXJKVBFWLZ0123456789"
+		  Dim counts() As Integer = Array(2, 4, 6, 8, 10, 12, 15, 18, 22, 26, 36)
+		  Dim index As Integer = lesson
+		  If index < 0 Then index = 0
+		  If index > counts.LastIndex Then index = counts.LastIndex
+		  Return order.Left(counts(index))
 		End Function
 	#tag EndMethod
 
@@ -143,13 +122,34 @@ Protected Class TrainerEngine
 	#tag EndMethod
 
 	#tag Method, Flags = &h0
-		Function LessonCharacters(lesson As Integer) As String
-		  Dim order As String = "ETANIMSOUDRCQYHGPXJKVBFWLZ0123456789"
-		  Dim counts() As Integer = Array(2, 4, 6, 8, 10, 12, 15, 18, 22, 26, 36)
-		  Dim index As Integer = lesson
-		  If index < 0 Then index = 0
-		  If index > counts.LastIndex Then index = counts.LastIndex
-		  Return order.Left(counts(index))
+		Function NextPrompt(mode As String, lesson As Integer) As String
+		  Dim pool As String = LessonCharacters(lesson)
+		  If mode = "Callsigns" Then
+		    If mCallsigns.Count > 0 Then
+		      Dim selected As String
+		      For attempt As Integer = 0 To 5
+		        selected = mCallsigns(System.Random.InRange(0, mCallsigns.LastIndex))
+		        If selected <> mLastCallsign Then Exit
+		      Next
+		      mLastCallsign = selected
+		      Return selected
+		    End If
+		    Dim fallback() As String = Array("K5ZD", "W9KKN", "AA5SH", "N6MTS", "VE3NE", "DL1A", "JA1ABC")
+		    Return fallback(System.Random.InRange(0, fallback.LastIndex))
+		  End If
+		  If mode = "Words" Then
+		    Dim words() As String = Array("THE", "AND", "RADIO", "MORSE", "CODE", "SIGNAL", "ANTENNA", "POWER", "NAME", "QTH")
+		    Dim candidates() As String
+		    For Each word As String In words
+		      Dim allowed As Boolean = True
+		      For Each character As String In word.Characters
+		        If pool.IndexOf(character) < 0 Then allowed = False
+		      Next
+		      If allowed Then candidates.Add(word)
+		    Next
+		    If candidates.Count > 0 Then Return candidates(System.Random.InRange(0, candidates.LastIndex))
+		  End If
+		  Return pool.Middle(System.Random.InRange(0, pool.Length - 1), 1)
 		End Function
 	#tag EndMethod
 
@@ -165,13 +165,43 @@ Protected Class TrainerEngine
 		End Sub
 	#tag EndMethod
 
+
+	#tag Property, Flags = &h0
+		Attempts As Integer
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		CallsignSource As String
+	#tag EndProperty
+
+	#tag ComputedProperty, Flags = &h21
+		#tag Getter
+			Get
+			  Return DitMilliseconds * 2.5
+			End Get
+		#tag EndGetter
+		Private CharacterGapMilliseconds As Double
+	#tag EndComputedProperty
+
+	#tag Property, Flags = &h0
+		Correct As Integer
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		CurrentPattern As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		CurrentTarget As String
+	#tag EndProperty
+
 	#tag ComputedProperty, Flags = &h0
 		#tag Getter
 			Get
 			  Return 1200.0 / WPM
 			End Get
 		#tag EndGetter
-		Property DitMilliseconds As Double
+		DitMilliseconds As Double
 	#tag EndComputedProperty
 
 	#tag ComputedProperty, Flags = &h21
@@ -180,17 +210,44 @@ Protected Class TrainerEngine
 			  Return DitMilliseconds * 2.0
 			End Get
 		#tag EndGetter
-		Property ElementThresholdMilliseconds As Double
+		Private ElementThresholdMilliseconds As Double
 	#tag EndComputedProperty
 
-	#tag ComputedProperty, Flags = &h21
-		#tag Getter
-			Get
-			  Return DitMilliseconds * 2.5
-			End Get
-		#tag EndGetter
-		Property CharacterGapMilliseconds As Double
-	#tag EndComputedProperty
+	#tag Property, Flags = &h0
+		LastResult As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mCallsigns() As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mCodec As MorseCodec
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mKeyDownAt As Double
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mKeyIsDown As Boolean
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mLastCallsign As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mLastKeyUp As Double
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		ReceivedText As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h0
+		Streak As Integer
+	#tag EndProperty
 
 	#tag ComputedProperty, Flags = &h21
 		#tag Getter
@@ -198,53 +255,13 @@ Protected Class TrainerEngine
 			  Return DitMilliseconds * 6.0
 			End Get
 		#tag EndGetter
-		Property WordGapMilliseconds As Double
+		Private WordGapMilliseconds As Double
 	#tag EndComputedProperty
 
 	#tag Property, Flags = &h0
-		CallsignSource As String
-	#tag EndProperty
-	#tag Property, Flags = &h0
-		Attempts As Integer
-	#tag EndProperty
-	#tag Property, Flags = &h0
-		Correct As Integer
-	#tag EndProperty
-	#tag Property, Flags = &h0
-		CurrentPattern As String
-	#tag EndProperty
-	#tag Property, Flags = &h0
-		CurrentTarget As String
-	#tag EndProperty
-	#tag Property, Flags = &h0
-		LastResult As String
-	#tag EndProperty
-	#tag Property, Flags = &h0
-		ReceivedText As String
-	#tag EndProperty
-	#tag Property, Flags = &h0
-		Streak As Integer
-	#tag EndProperty
-	#tag Property, Flags = &h0
 		WPM As Integer = 20
 	#tag EndProperty
-	#tag Property, Flags = &h21
-		mCallsigns() As String
-	#tag EndProperty
-	#tag Property, Flags = &h21
-		mLastCallsign As String
-	#tag EndProperty
-	#tag Property, Flags = &h21
-		mCodec As MorseCodec
-	#tag EndProperty
-	#tag Property, Flags = &h21
-		mKeyDownAt As Double
-	#tag EndProperty
-	#tag Property, Flags = &h21
-		mKeyIsDown As Boolean
-	#tag EndProperty
-	#tag Property, Flags = &h21
-		mLastKeyUp As Double
-	#tag EndProperty
+
+
 End Class
 #tag EndClass

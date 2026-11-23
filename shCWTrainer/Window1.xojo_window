@@ -206,7 +206,7 @@ Begin DesktopWindow Window1
       LockRight       =   False
       LockTop         =   True
       Scope           =   0
-		  SelectedRowIndex=   1
+      SelectedRowIndex=   1
       TabIndex        =   4
       TabPanelIndex   =   0
       TabStop         =   True
@@ -426,6 +426,7 @@ Begin DesktopWindow Window1
       FontUnit        =   0
       Height          =   22
       Index           =   -2147483648
+      Italic          =   False
       Left            =   590
       LockBottom      =   False
       LockedInPosition=   False
@@ -438,34 +439,83 @@ Begin DesktopWindow Window1
       TabStop         =   True
       Tooltip         =   "Reverse the dit and dah paddles"
       Top             =   151
+      Transparent     =   False
+      Underline       =   False
       Value           =   False
       Visible         =   True
+      VisualState     =   0
       Width           =   130
    End
    Begin DesktopLabel BTimingLabel
       AllowAutoDeactivate=   True
+      Bold            =   False
       Enabled         =   True
+      FontName        =   "System"
+      FontSize        =   0.0
+      FontUnit        =   0
       Height          =   22
+      Index           =   -2147483648
+      Italic          =   False
       Left            =   726
+      LockBottom      =   False
+      LockedInPosition=   False
+      LockLeft        =   True
+      LockRight       =   False
+      LockTop         =   True
+      Multiline       =   False
       Scope           =   0
+      Selectable      =   False
       TabIndex        =   12
+      TabPanelIndex   =   0
+      TabStop         =   True
       Text            =   "B timing"
+      TextAlignment   =   0
+      TextColor       =   &c000000
       Tooltip         =   "0 is eager Curtis B; 100 approaches Mode A release timing"
       Top             =   153
+      Transparent     =   False
+      Underline       =   False
       Visible         =   True
       Width           =   58
    End
    Begin DesktopTextField BTimingField
       AllowAutoDeactivate=   True
+      AllowFocusRing  =   True
+      AllowSpellChecking=   False
+      AllowTabs       =   False
+      BackgroundColor =   &cFFFFFF
+      Bold            =   False
       Enabled         =   True
+      FontName        =   "System"
+      FontSize        =   0.0
+      FontUnit        =   0
+      Format          =   ""
+      HasBorder       =   True
       Height          =   26
+      Hint            =   ""
+      Index           =   -2147483648
+      Italic          =   False
       Left            =   790
+      LockBottom      =   False
+      LockedInPosition=   False
+      LockLeft        =   True
+      LockRight       =   False
+      LockTop         =   True
+      MaximumCharactersAllowed=   0
+      Password        =   False
+      ReadOnly        =   False
       Scope           =   0
       TabIndex        =   13
+      TabPanelIndex   =   0
+      TabStop         =   True
       Text            =   "50"
       TextAlignment   =   2
+      TextColor       =   &c000000
       Tooltip         =   "Enhanced Mode B timing percentage, 0–100"
       Top             =   148
+      Transparent     =   False
+      Underline       =   False
+      ValidationMask  =   ""
       Visible         =   True
       Width           =   50
    End
@@ -727,7 +777,7 @@ Begin DesktopWindow Window1
       TabPanelIndex   =   0
    End
    Begin Timer PlaybackTimer
-		Enabled         =   True
+      Enabled         =   True
       Index           =   -2147483648
       LockedInPosition=   False
       Mode            =   2
@@ -800,68 +850,6 @@ End
 
 
 	#tag Method, Flags = &h21
-		Private Sub LoadSettings()
-		  Try
-		    Dim settingsFile As FolderItem = SpecialFolder.Preferences.Child("SH CW Trainer Settings.txt")
-		    If settingsFile Is Nil Or Not settingsFile.Exists Then Return
-		    Dim input As TextInputStream = TextInputStream.Open(settingsFile)
-		    While Not input.EndOfFile
-		      Dim line As String = input.ReadLine
-		      Dim separator As Integer = line.IndexOf("=")
-		      If separator < 1 Then Continue
-		      Dim key As String = line.Left(separator)
-		      Dim value As String = line.Middle(separator + 1)
-		      Select Case key
-		      Case "WPM"
-		        Dim speed As Integer = value.ToInteger
-		        If speed >= 5 And speed <= 60 Then WPMField.Text = speed.ToString
-		      Case "Pitch"
-		        Dim pitch As Integer = value.ToInteger
-		        If pitch >= 300 And pitch <= 1200 Then PitchField.Text = pitch.ToString
-		      Case "Mode"
-		        Dim modeIndex As Integer = value.ToInteger
-		        If modeIndex >= 0 And modeIndex < ModePopup.RowCount Then ModePopup.SelectedRowIndex = modeIndex
-		      Case "Lesson"
-		        Dim lessonIndex As Integer = value.ToInteger
-		        If lessonIndex >= 0 And lessonIndex < LessonPopup.RowCount Then LessonPopup.SelectedRowIndex = lessonIndex
-		      Case "KeyerMode"
-		        Dim keyerIndex As Integer = value.ToInteger
-		        If keyerIndex >= 0 And keyerIndex < KeyerModePopup.RowCount Then KeyerModePopup.SelectedRowIndex = keyerIndex
-		      Case "SwapPaddles"
-		        SwapPaddlesCheck.Value = value = "1"
-		      Case "BTiming"
-		        Dim timing As Integer = value.ToInteger
-		        If timing >= 0 And timing <= 100 Then BTimingField.Text = timing.ToString
-		      End Select
-		    Wend
-		    input.Close
-		  Catch error As RuntimeException
-		    StatusLabel.Text = "Settings could not be restored: " + error.Message
-		  End Try
-		End Sub
-	#tag EndMethod
-
-	#tag Method, Flags = &h21
-		Private Sub SaveSettings()
-		  Try
-		    Dim settingsFile As FolderItem = SpecialFolder.Preferences.Child("SH CW Trainer Settings.txt")
-		    If settingsFile Is Nil Then Return
-		    Dim output As TextOutputStream = TextOutputStream.Create(settingsFile)
-		    output.WriteLine("WPM=" + WPMField.Text)
-		    output.WriteLine("Pitch=" + PitchField.Text)
-		    output.WriteLine("Mode=" + ModePopup.SelectedRowIndex.ToString)
-		    output.WriteLine("Lesson=" + LessonPopup.SelectedRowIndex.ToString)
-		    output.WriteLine("KeyerMode=" + KeyerModePopup.SelectedRowIndex.ToString)
-		    output.WriteLine("SwapPaddles=" + If(SwapPaddlesCheck.Value, "1", "0"))
-		    output.WriteLine("BTiming=" + BTimingField.Text)
-		    output.Close
-		  Catch error As RuntimeException
-		    StatusLabel.Text = "Settings could not be saved: " + error.Message
-		  End Try
-		End Sub
-	#tag EndMethod
-
-	#tag Method, Flags = &h21
 		Private Sub AdvancePlayback()
 		  If Not mPlaybackActive Then Return
 		  If Not mSidetone.IsPlaying Then
@@ -920,6 +908,48 @@ End
 	#tag EndMethod
 
 	#tag Method, Flags = &h21
+		Private Sub LoadSettings()
+		  Try
+		    Dim settingsFile As FolderItem = SpecialFolder.Preferences.Child("SH CW Trainer Settings.txt")
+		    If settingsFile Is Nil Or Not settingsFile.Exists Then Return
+		    Dim input As TextInputStream = TextInputStream.Open(settingsFile)
+		    While Not input.EndOfFile
+		      Dim line As String = input.ReadLine
+		      Dim separator As Integer = line.IndexOf("=")
+		      If separator < 1 Then Continue
+		      Dim key As String = line.Left(separator)
+		      Dim value As String = line.Middle(separator + 1)
+		      Select Case key
+		      Case "WPM"
+		        Dim speed As Integer = value.ToInteger
+		        If speed >= 5 And speed <= 60 Then WPMField.Text = speed.ToString
+		      Case "Pitch"
+		        Dim pitch As Integer = value.ToInteger
+		        If pitch >= 300 And pitch <= 1200 Then PitchField.Text = pitch.ToString
+		      Case "Mode"
+		        Dim modeIndex As Integer = value.ToInteger
+		        If modeIndex >= 0 And modeIndex < ModePopup.RowCount Then ModePopup.SelectedRowIndex = modeIndex
+		      Case "Lesson"
+		        Dim lessonIndex As Integer = value.ToInteger
+		        If lessonIndex >= 0 And lessonIndex < LessonPopup.RowCount Then LessonPopup.SelectedRowIndex = lessonIndex
+		      Case "KeyerMode"
+		        Dim keyerIndex As Integer = value.ToInteger
+		        If keyerIndex >= 0 And keyerIndex < KeyerModePopup.RowCount Then KeyerModePopup.SelectedRowIndex = keyerIndex
+		      Case "SwapPaddles"
+		        SwapPaddlesCheck.Value = value = "1"
+		      Case "BTiming"
+		        Dim timing As Integer = value.ToInteger
+		        If timing >= 0 And timing <= 100 Then BTimingField.Text = timing.ToString
+		      End Select
+		    Wend
+		    input.Close
+		  Catch error As RuntimeException
+		    StatusLabel.Text = "Settings could not be restored: " + error.Message
+		  End Try
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h21
 		Private Sub MidiPaddleChanged(sender As MidiInputManager, note As Integer, isDown As Boolean)
 		  #Pragma Unused sender
 		  If note = 20 Then mRawLeftDown = isDown
@@ -948,6 +978,26 @@ End
 		Private Function NowMilliseconds() As Double
 		  Return System.Microseconds / 1000.0
 		End Function
+	#tag EndMethod
+
+	#tag Method, Flags = &h21
+		Private Sub SaveSettings()
+		  Try
+		    Dim settingsFile As FolderItem = SpecialFolder.Preferences.Child("SH CW Trainer Settings.txt")
+		    If settingsFile Is Nil Then Return
+		    Dim output As TextOutputStream = TextOutputStream.Create(settingsFile)
+		    output.WriteLine("WPM=" + WPMField.Text)
+		    output.WriteLine("Pitch=" + PitchField.Text)
+		    output.WriteLine("Mode=" + ModePopup.SelectedRowIndex.ToString)
+		    output.WriteLine("Lesson=" + LessonPopup.SelectedRowIndex.ToString)
+		    output.WriteLine("KeyerMode=" + KeyerModePopup.SelectedRowIndex.ToString)
+		    output.WriteLine("SwapPaddles=" + If(SwapPaddlesCheck.Value, "1", "0"))
+		    output.WriteLine("BTiming=" + BTimingField.Text)
+		    output.Close
+		  Catch error As RuntimeException
+		    StatusLabel.Text = "Settings could not be saved: " + error.Message
+		  End Try
+		End Sub
 	#tag EndMethod
 
 	#tag Method, Flags = &h21
@@ -996,19 +1046,11 @@ End
 	#tag EndProperty
 
 	#tag Property, Flags = &h21
-		Private mNativeElementCount As Integer
-	#tag EndProperty
-
-	#tag Property, Flags = &h21
-		Private mRawLeftDown As Boolean
-	#tag EndProperty
-
-	#tag Property, Flags = &h21
-		Private mRawRightDown As Boolean
-	#tag EndProperty
-
-	#tag Property, Flags = &h21
 		Private mMidi As MidiInputManager
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mNativeElementCount As Integer
 	#tag EndProperty
 
 	#tag Property, Flags = &h21
@@ -1029,6 +1071,14 @@ End
 
 	#tag Property, Flags = &h21
 		Private mPlaybackTones() As Boolean
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mRawLeftDown As Boolean
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mRawRightDown As Boolean
 	#tag EndProperty
 
 	#tag Property, Flags = &h21
